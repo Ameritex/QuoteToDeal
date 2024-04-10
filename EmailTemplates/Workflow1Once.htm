@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        td, th .img {
+            display: block;
+        }
+
+        table, th, td {
+            border: 0px solid #000000;
+        }
+
+            table th, table td {
+                padding: 0;
+            }
+
+        #page-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            margin: 0;
+            padding: 0;
+            border: 0
+        }
+
+        @media screen {
+            #sidebar.opened + #page-container {
+                left: 250px
+            }
+
+            #page-container {
+                bottom: 0;
+                right: 0;
+                overflow: auto
+            }
+        }
+
+        @media print {
+            @page {
+                margin: 0
+            }
+
+            html {
+                margin: 0
+            }
+
+            body {
+                margin: 0;
+                -webkit-print-color-adjust: exact
+            }
+
+            #page-container {
+                width: auto;
+                height: auto;
+                overflow: visible;
+                background-color: transparent
+            }
+        }
+
+        .pf {
+            position: relative;
+            background-color: white;
+            overflow: hidden;
+            margin: 0;
+            border: 0
+        }
+
+        .pc {
+            position: absolute;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: block;
+            transform-origin: 0 0;
+            -ms-transform-origin: 0 0;
+            -webkit-transform-origin: 0 0
+        }
+
+        @media print {
+            .pf {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+                page-break-inside: avoid
+            }
+
+            @-moz-document url-prefix() {
+                .pf {
+                    overflow: visible;
+                    border: 1px solid #fff
+                }
+
+                .pc {
+                    overflow: visible
+                }
+            }
+        }
+
+        @media screen {
+            #outline {
+                font-family: Georgia,Times,"Times New Roman",serif;
+                font-size: 13px;
+                margin: 2em 1em
+            }
+
+                #outline ul {
+                    padding: 0
+                }
+
+                #outline li {
+                    list-style-type: none;
+                    margin: 1em 0
+                }
+
+                    #outline li > ul {
+                        margin-left: 1em
+                    }
+
+                #outline a, #outline a:visited, #outline a:hover, #outline a:active {
+                    line-height: 1.2;
+                    color: #e8e8e8;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    text-decoration: none;
+                    display: block;
+                    overflow: hidden;
+                    outline: 0
+                }
+
+                    #outline a:hover {
+                        color: #0cf
+                    }
+
+            #page-container {
+                background-color: #9e9e9e;
+                background-image: url("https://ameritexllc.com/wp-content/uploads/2024/03/background.svg");
+                transition: left 500ms
+            }
+
+            #page-template {
+                font-family: sans-serif;
+                font-size: 15px;
+                border-collapse: separate;
+                border: 0;
+                padding: 0;
+                margin: 0;
+                top: 0;
+                left: 0;
+                overflow: hidden;
+                display: block;
+                -webkit-transform-origin: 0 0;
+                height: 842.25px;
+                width: 595.5px;
+                background-color: #dddddd;
+            }
+
+            .pf {
+                margin: 13px auto;
+                box-shadow: 1px 1px 3px 1px #333;
+                border-collapse: separate
+            }
+        }
+
+        .ws0 {
+            word-spacing: -15.674399px;
+        }
+
+        .h0 {
+            height: 842.249979px;
+        }
+
+        .w0 {
+            width: 595.500000px;
+        }
+
+        @media print {
+            .ws0 {
+                word-spacing: -20.899199pt;
+            }
+
+            .h0 {
+                height: 1122.999972pt;
+            }
+
+            .w0 {
+                width: 794.000000pt;
+            }
+        }
+    </style>
+    <title>
+    </title>
+</head>
+<body>
+    <div id="page-container" style="/* font-family: Calibri; */">
+        <div id="pf1" class="pf w0 h0" data-page-no="1">
+            <div id="page-template" class="pc pc1 w0 h0">
+                <table style="width: 595.5px;height: 842.25px;">
+                    <thead>
+                        <tr>
+                            <th align="left" style="width: 100%">
+                                <img class="img" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow_header.png" style="width: 100%;">
+                            </th>
+                        </tr>
+                        <tr class="">
+                            <th align="left">
+                                <img class="img" style="width: 100%;" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow1_banner.png">
+                            </th>
+                        </tr>
+                        <tr>
+                            <th align="left" style="text-align: center;font-size: 40px;padding: 15px 0;">Hello {customerName},</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table style="padding: 0 15px; margin: 0 35px;">
+                                    <tbody>
+                                        <tr>
+                                            <td style="padding-bottom: 15px;">
+                                                We wanted to remind you that your custom quote from Ameritex, <br />numbered "{quoteNumber}", is ready and awaiting your review.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 15px;">
+                                                We've sent all the pertinent details directly to your inbox for your convenience.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 15px;">
+                                                We're eager to show how our precision-driven solutions align with your project's ambitions.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 15px;">
+                                                Your feedback is valuable to us, and we look forward to any questions or insights you may wish to share.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 20px;">
+                                                Thank you for considering Ameritex for your metal fabrication needs. We are committed to delivering excellence and precision, from the initial quote to the final product.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;padding-bottom: 40px;">
+                                                <a href="mailto:Sales@Ameritexllc.com" class="x_l" data-linkindex="0"><div class="x_d x_m1" style="text-align: center; width: 75px; display: block; margin: auto; background: black; color: white; padding: 10px 25px; border-radius: 20px;">Email</div></a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 40px;text-align: center;color: white">
+                                                <img src="https://ameritexllc.com/wp-content/uploads/2024/03/logo.png">
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;color: gray;font-size: xx-small;">
+                                                <div>
+                                                    IMPORTANT: The contents of this email and any attachments are confidential. They are intended for the named recipient(s) only. If you have
+                                                    received this email by mistake, please notify the sender immediately and do not disclose the contents to anyone or make copies thereof
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                            </td>
+                        </tr>
+                        <tr style="background-color: white;">
+                            <td style="text-align:center;">
+                                <div style="width: 100%;">
+                                    <a style="margin-left:8em;" href="https://ameritexllc.com/">www.ameritexllc.com</a>
+                                    <a style="margin:5px 30px 0 0; width:28.500000px;height:28.500000px;display: block;float: right;" href="https://www.facebook.com/AMTXFAB" target="_blank" rel="noopener noreferrer" data-auth="NotApplicable" class="" data-linkindex="1">
+                                        <img src="https://ameritexllc.com/wp-content/uploads/2024/03/facebook.png">
+                                    </a>
+                                    <a style="margin:5px 10px 0 0;width:28.500000px;height:28.500000px;display: block;float: right;" href="https://www.linkedin.com/company/ameritex-machine-fabrication" target="_blank" rel="noopener noreferrer" data-auth="NotApplicable" class="" data-linkindex="1">
+                                        <img src="https://ameritexllc.com/wp-content/uploads/2024/03/linkedin.png">
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
