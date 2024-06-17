@@ -1,38 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Quartz;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Quote_To_Deal.Data;
 using Quote_To_Deal.Common;
-using HubSpot.NET.Api.Contact;
-using HubSpot.NET.Core;
 using Quote_To_Deal.Hubspot;
-using HubSpot.NET.Core.Requests;
 using Quote_To_Deal.PaperLess;
-using Quote_To_Deal.Extensions;
 using Quote_To_Deal.Data.Entities;
-using Microsoft.IdentityModel.Protocols.Configuration;
 using HubSpot.NET.Api.Deal.Dto;
 using Quote_To_Deal.Models;
 using HubSpot.NET.Api.Contact.Dto;
-using Quote_To_Deal.Common;
-using System.Reflection.Metadata.Ecma335;
-using ServiceStack;
 using System.Data;
-using RestSharp.Extensions;
 
 namespace Quote_To_Deal.Jobs
 {
@@ -52,7 +34,6 @@ namespace Quote_To_Deal.Jobs
             string hsApiKey = dataMap.GetString("PrivateAppKey");
             long lastOrderNo = dataMap.GetLong("LastOrderNumber");
             string quotePath = dataMap.GetString("QuotePath");
-            string message = "";
 
             _hsAmeritexCompanyId = dataMap.GetLong("AmeritexCompanyId");
 
@@ -201,7 +182,8 @@ namespace Quote_To_Deal.Jobs
                         try
                         {
                             Utils.SendEmail(_emailSetting, new List<PaperLess.Quote> { quote }, "Workflow4", new List<string> { quote.customer.email }
-                                        , order.ships_on.GetValueOrDefault().ToShortDateString(), EncryptDecrypt.Encrypt(customerId.ToString()), EncryptDecrypt.Encrypt(quoteId.ToString()));
+                                        , order.ships_on.GetValueOrDefault().ToShortDateString(), EncryptDecrypt.Encrypt(customerId.ToString()), 
+                                        EncryptDecrypt.Encrypt(quoteId.ToString()), quote.salesperson.first_name);
                         }
                         catch (Exception ex)
                         {
@@ -247,60 +229,9 @@ namespace Quote_To_Deal.Jobs
             return (quote.Id, customerId);
         }
 
-        private Data.Entities.SalesPerson? GetSalesPerson(int quoteId)
-        {
-            var salesPersonId = _dbContext.QuoteSalesPerson.FirstOrDefault(x => x.QuoteId == quoteId)?.SalesPersonId;
-            if (salesPersonId == null) { return null; }
-
-            return _dbContext.SalesPersons.FirstOrDefault(x => x.Id == salesPersonId);
-        }
-
         private long GetStoredHsDealId(long? quoteNumber)
         {
             return _dbContext.Quotes.Where(x => x.QuoteNumber == quoteNumber).FirstOrDefault()?.HsDealId ?? 0;
-        }
-
-        private (IEnumerable<NewQuote>, long) GetEligibleQuotes()
-        {
-            var quotes = _dbContext.Quotes.Where(x => (x.Status == "outstanding" 
-                                                                || x.Status == "accepted" 
-                                                                || (!string.IsNullOrEmpty(x.OrderStatus) && x.OrderStatus != "completed")) 
-                                                                && (x.IsWorkflow4 ?? false) == false)
-                        .ToList();
-
-            var maxQuoteNumber = quotes.OrderByDescending(x => x.CreatedDate).FirstOrDefault()?.QuoteNumber  ?? 0;
-
-            //var quotes = unApprovedQuotes.Where(x => Utils.GetBusinessDays(x.ShipOn ?? DateTime.Now, DateTime.Now) >= 2);
-            var newQuotes = new List<NewQuote>();
-            foreach (var storedQuote in quotes)
-            {
-                newQuotes.Add(
-                    new NewQuote
-                    {
-                        quote = storedQuote.QuoteNumber ?? 0
-                    });
-            }
-            return (newQuotes, maxQuoteNumber);
-        }
-
-        private void UpdateQuote(long? quoteNumber, int? revision, bool updateStatus, string? status = null)
-        {
-            if (quoteNumber == null) { return; }
-
-            var existingQuote = _dbContext.Quotes.FirstOrDefault(x => x.QuoteNumber == quoteNumber && x.Revision == revision);
-            if (existingQuote != null)
-            {
-                if (!string.IsNullOrEmpty(status))
-                {
-                    existingQuote.Status= status;
-                }
-                if (updateStatus)
-                {
-                    existingQuote.IsWorkflow4 = true;
-                }
-
-                _dbContext.SaveChanges();
-            }
         }
 
         private void UpdateOrder(long? quoteNumber, int? revision, bool updateStatus, OrderModel order)
@@ -445,13 +376,6 @@ namespace Quote_To_Deal.Jobs
 
             _dbContext.SaveChanges();
 
-        }
-
-        private long GetMaxQuoteNumberFromDB()
-        {
-            return _dbContext.Quotes
-                .Where(x => x.Status == "outstanding")
-                .Max(x => x.QuoteNumber) ?? 0;
         }
 
         private void SetHubSpotAPI(string? hsApiKey)

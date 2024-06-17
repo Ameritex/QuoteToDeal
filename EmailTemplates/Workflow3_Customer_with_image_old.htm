@@ -3,10 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
     <style type="text/css">
-
-
         @media screen {
             #sidebar.opened + #page-container {
                 left: 250px
@@ -23,7 +21,6 @@
                 padding: 0;
                 border: 0
             }
-
             table {
                 border-collapse: collapse;
                 border-spacing: 0;
@@ -165,22 +162,23 @@
                 background-color: #dddddd;
             }
 
+
             .pf {
                 margin: 13px auto;
                 box-shadow: 1px 1px 3px 1px #333;
                 border-collapse: separate
             }
-        }
+            .ws0 {
+                word-spacing: -15.7px;
+            }
 
-        .ws0 {
-            word-spacing: -15.7px;
-        }
+            .h0 {
+               
+            }
 
-        .h0 {
-        }
-
-        .w0 {
-            width: 595.5px;
+            .w0 {
+                width: 595.5px;
+            }
         }
 
         @media print {
@@ -199,12 +197,12 @@
 
         @media screen and (max-width: 768px) {
             .h0 {
+               
             }
 
             #page-template {
                 height: calc(100%);
             }
-
             .w0 {
                 width: 100%;
             }
@@ -214,7 +212,7 @@
     </title>
 </head>
 <body>
-    <div id="page-container">
+    <div id="page-container" style="/* font-family: Calibri; */">
         <div id="pf1" class="pf w0 h0" data-page-no="1">
             <div id="page-template" class="pc pc1 w0 h0">
                 <table>
@@ -224,44 +222,38 @@
                                 <img class="img" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow_header.png" style="width: 100%;">
                             </th>
                         </tr>
-                        <tr>
+                        <tr class="">
                             <th align="left">
-                                <img class="img" style="width: 100%;" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow2_banner.png">
-
+                                <img class="img" style="width: 100%;" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow3_customer_banner.png">
                             </th>
                         </tr>
                         <tr>
-                            <th align="left" style="text-align: center; font-size: 40px; padding: 15px 0;">Hello {customerName},</th>
+                            <th align="left" style="padding: 15px 0; text-align: center;font-size: 40px;">Dear {customerName},</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>
-                                <table style="padding: 0 15px;margin:0 35px">
+                                <table style="padding: 0 15px;margin: 0 35px;">
                                     <tbody>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                It's a pleasure to confirm that we've received your acceptance for quote "{quoteNumber}".
+                                                Greetings from Ameritex Machine & Fabrication! <br />We noticed that the quote sent on {quoteDate}, reference number "{quoteNumber}", is awaiting your esteemed approval.
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                Our skilled team at Ameritex Machine & Fabrication is now gearing up to transform your project into a tangible masterpiece.
+                                                Our aim is to facilitate your projects with the highest precision and fastest turnaround, ensuring that every detail meets your specifications.
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                We're targeting an ETA of {quoteETA} to turn your concepts into high-quality fabrications. Rest assured, our commitment to precision and efficiency is at the core of every operation.
+                                                Should you need further assistance or have any questions, please reach out to our dedicated sales specialist, {salesPersonName}, at {salesPersonEmail}. We are here to assist you in every step to ensure seamless progress on your projects.
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style="padding-bottom: 15px;">
-                                                Should any questions arise as we embark on this journey of craftsmanship, or if youwish to discuss project details further, feel free to reach out.
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding-bottom: 15px;">
-                                                We are dedicated to ensuring a seamless process and exceptional results.<br/>Thank you for choosing Ameritex.
+                                            <td style="padding-bottom: 30px;">
+                                                Looking forward to your valued response.
                                             </td>
                                         </tr>
                                         <tr>
@@ -285,7 +277,6 @@
 
                                     </tbody>
                                 </table>
-
                             </td>
                         </tr>
                         <tr style="background-color: white;">

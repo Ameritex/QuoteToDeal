@@ -3,33 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type="text/css">
-        table {
-            border-collapse: collapse;
-            border-spacing: 0;
-        }
-
-        td, th .img {
-            display: block;
-        }
-
-        table, th, td {
-            border: 0px solid #000000;
-        }
-
-            table th, table td {
-                padding: 0;
-            }
-
-        #page-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            margin: 0;
-            padding: 0;
-            border: 0
-        }
-
         @media screen {
             #sidebar.opened + #page-container {
                 left: 250px
@@ -39,6 +14,32 @@
                 bottom: 0;
                 right: 0;
                 overflow: auto
+            }
+
+            table {
+                border-collapse: collapse;
+                border-spacing: 0;
+            }
+
+            td, th .img {
+                display: block;
+            }
+
+            table, th, td {
+                border: 0px solid #000000;
+            }
+
+                table th, table td {
+                    padding: 0;
+                }
+
+            #page-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                margin: 0;
+                padding: 0;
+                border: 0
             }
         }
 
@@ -150,7 +151,7 @@
             }
 
             #page-template {
-                font-family: sans-serif;
+                font-family: Calibri;
                 font-size: 15px;
                 border-collapse: separate;
                 border: 0;
@@ -161,8 +162,7 @@
                 overflow: hidden;
                 display: block;
                 -webkit-transform-origin: 0 0;
-                height: 842.25px;
-                width: 595.5px;
+                height: 100%;
                 background-color: #dddddd;
             }
 
@@ -178,24 +178,36 @@
         }
 
         .h0 {
-            height: 842.249979px;
         }
 
         .w0 {
-            width: 595.500000px;
+            width: 595.5px;
         }
 
         @media print {
             .ws0 {
-                word-spacing: -20.899199pt;
+                word-spacing: -21pt;
             }
 
             .h0 {
-                height: 1122.999972pt;
+                height: 1123pt;
             }
 
             .w0 {
-                width: 794.000000pt;
+                width: 794pt;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .h0 {
+            }
+
+            #page-template {
+                height: calc(100%);
+            }
+
+            .w0 {
+                width: 100%;
             }
         }
     </style>
@@ -203,10 +215,10 @@
     </title>
 </head>
 <body>
-    <div id="page-container" style="font-family: sans-serif; background-color: whitesmoke;">
+    <div id="page-container">
         <div id="pf1" class="pf w0 h0" data-page-no="1">
             <div id="page-template" class="pc pc1 w0 h0">
-                <table  cellspacing="0" style="width: 595.5px;height: 842.25px;">
+                <table>
                     <thead>
                         <tr>
                             <th align="left" style="width: 100%">
@@ -226,16 +238,30 @@
                     <tbody>
                         <tr>
                             <td>
-                                <table style="padding: 0 15px;margin: 30px 65px 0;">
+                                <table style="padding: 0 15px;margin: 30px 50px 0;">
                                     <tbody>
                                         <tr>
-                                            <td style="padding-bottom: 60px; text-align:center;">
+                                            <td style="padding-bottom: 15px; text-align:center;">
                                                 We’re happy to inform you that the quote “{quoteNumber}” has been completed, and will be shipped on {shipDate}. Please let us know if you have any questions.
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style="text-align: center;padding-bottom: 90px;">
-                                                <a href="mailto:Sales@Ameritexllc.com" class="x_l" data-linkindex="0"><div class="x_d x_m1" style="text-align: center; width: 75px; display: block; margin: auto; background: black; color: white; padding: 10px 25px; border-radius: 20px;">Email</div></a>
+                                            <td style="padding-bottom: 15px; text-align:center;">
+                                                Also please give us your feedback regarding your experience by answering a short survey.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 50px; text-align:center;">
+                                                This helps us sharpen our skills and make any changes that you would like to see.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;padding-bottom: 60px;">
+                                                <a href="{surveyLink}" class="x_l" data-linkindex="0">
+                                                <div class="x_d x_m1" style="text-align: center; width: 75px; display: block; margin: auto; background: black; color: white; padding: 10px 25px; border-radius: 20px;">
+                                                    Survey
+                                                </div>
+                                                </a>
                                             </td>
                                         </tr>
                                         <tr>
@@ -253,7 +279,6 @@
                                         </tr>
                                     </tbody>
                                 </table>
-
                             </td>
                         </tr>
                         <tr style="background-color: white;">

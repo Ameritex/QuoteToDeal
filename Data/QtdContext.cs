@@ -1,11 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System;
-using System.Reflection.Metadata;
+﻿using Microsoft.EntityFrameworkCore;
 using Quote_To_Deal.Data.Entities;
 
 namespace Quote_To_Deal.Data
@@ -25,6 +18,7 @@ namespace Quote_To_Deal.Data
         public virtual DbSet<SalesPerson> SalesPersons { get; set; }
         public virtual DbSet<Team> Teams { get; set; }
         public virtual DbSet<UnsubscribeEmail> UnsubscribeEmails { get; set; }
+        public virtual DbSet<OnceADayEmail> OnceADayEmails{ get; set; }
 
     }
 }

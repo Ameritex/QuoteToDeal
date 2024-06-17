@@ -4,26 +4,20 @@ using HubSpot.NET.Api.Deal.Dto;
 using HubSpot.NET.Api.Owner.Dto;
 using HubSpot.NET.Api.Task.Dto;
 using HubSpot.NET.Core;
-using HubSpot.NET.Core.Interfaces;
 using Newtonsoft.Json.Linq;
-using Quote_To_Deal.PaperLess;
-using ServiceStack.Text;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Quote_To_Deal.Hubspot
 {
     public class HubspotAPIControl
     {
-        private readonly string _apiKey;
+        //private readonly string _apiKey;
         private readonly HubSpotApi _hubspotApi;
         public HubspotAPIControl(string apiKey) 
         {
             _hubspotApi = new HubSpotApi(apiKey);
-            _apiKey = apiKey;
+            //_apiKey = apiKey;
         }
 
         public long GetContactIdByEmail(string email)

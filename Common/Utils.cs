@@ -1,24 +1,32 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
-using Quartz.Impl.AdoJobStore;
-using Quote_To_Deal.Data.Entities;
-using Quote_To_Deal.Models;
+﻿using Quote_To_Deal.Models;
 using Quote_To_Deal.PaperLess;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Mail;
-using System.Reflection;
+using System.Text.Encodings.Web;
 
 namespace Quote_To_Deal.Common
 {
     public class Utils
     {
-        public static void SendEmail(EmailSetting setting, List<PaperLess.Quote> quotes, string templateName, 
-            IReadOnlyList<string> toEmails, string dated = "", string customerId = "", string quoteId = "")
+        private static bool _isTestEmail;
+        private static bool _isDevOnly;
+        private static string _surveyLink;
+        private static EmailSetting _emailSetting;
+        private static List<SalespersonEmailCreds> _salesPersonEmailCreds;
+
+        public Utils(bool isTestEmail, bool isDevOnly, string surveyLink, List<SalespersonEmailCreds> salesPersonEmailCreds)
+        {
+            _isTestEmail = isTestEmail;
+            _isDevOnly = isDevOnly;
+            _salesPersonEmailCreds = salesPersonEmailCreds;
+            _surveyLink = surveyLink;
+        }
+
+        public static void SendEmail(EmailSetting setting, List<PaperLess.Quote> quotes, string templateName,
+            IReadOnlyList<string> toEmails, string dated = "", string customerId = "", string quoteId = "", string salesPersonName = "")
         {
             if (!toEmails.Any())
             {
@@ -26,29 +34,43 @@ namespace Quote_To_Deal.Common
             }
             try
             {
+                _emailSetting = setting;
                 String userEmail = setting.UserEmail;
                 String password = setting.Password;
                 MailMessage msg = new MailMessage();
-                //foreach (string email in toEmails)
-                //{
-                //    msg.To.Add(new MailAddress(email));
-                //}
-                msg.To.Add(new MailAddress("zco@ameritexllc.com"));
-                msg.To.Add(new MailAddress("damaya@ameritexllc.com"));
-                msg.From = new MailAddress(userEmail);
-                var (subject, body) = ReadTemplateContent(templateName, quotes, dated, customerId, quoteId);
+                if (_isTestEmail)
+                {
+                    msg.To.Add(new MailAddress("zco@ameritexllc.com"));
+                    if (!_isDevOnly)
+                    {
+                        msg.To.Add(new MailAddress("damaya@ameritexllc.com"));
+                    }
+                }
+                else
+                {
+                    foreach (string email in toEmails)
+                    {
+                        msg.To.Add(new MailAddress(email));
+                    }
+                }
+
+                var emailCreds = GetSalesPersonEmailCreds(salesPersonName);//salesPersonName
+
+                msg.From = new MailAddress(emailCreds.Email);
+                var (subject, body) = ReadTemplateContent(templateName, quotes, dated, customerId, quoteId, salesPersonName);
                 msg.Subject = subject;
                 msg.Body = body;
                 msg.IsBodyHtml = true;
-                
+
+
                 using (SmtpClient client = new SmtpClient
                 {
                     Host = setting.Host,
-                    Credentials = new System.Net.NetworkCredential(userEmail, password),
+                    Credentials = new System.Net.NetworkCredential(emailCreds.Email, emailCreds.Password),
                     Port = setting.Port,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     EnableSsl = setting.EnableSsl,
-                   
+
                     UseDefaultCredentials = false
                 })
                 {
@@ -62,8 +84,9 @@ namespace Quote_To_Deal.Common
                 //Console.ReadKey();
             }
         }
-
-        public static (string, string) ReadTemplateContent(string templateName, List<PaperLess.Quote> quotes, string dated, string customerId, string quoteId)
+       
+        public static (string, string) ReadTemplateContent(string templateName, List<PaperLess.Quote> quotes, 
+            string dated, string customerId, string quoteId, string salesPersonName)
         {
             string emailContent = "";
             string emailSubject = "";
@@ -76,49 +99,64 @@ namespace Quote_To_Deal.Common
                 {
                     case "Workflow1":
                         {
-                            emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
-                                .Replace("{quoteNumber}", quotes.FirstOrDefault()?.number?.ToString() ?? "")
-                                .Replace("{unsubscribeEmail}", GetEncrypted(quotes.FirstOrDefault()?.customer.email ?? ""));
+                            //emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
+                            emailContent = emailContent.Replace("{customerFirstName}", quotes.FirstOrDefault()?.customer.first_name ?? "")
+                                //.Replace("{quoteNumber}", quotes.FirstOrDefault()?.number?.ToString() ?? "")
+                                .Replace("{unsubscribeLink}", $"{_emailSetting.EmailSetupBaseUrl}{_emailSetting.UnsubscribeEndpoint}")
+                                .Replace("{emailSetupLink}", $"{_emailSetting.EmailSetupBaseUrl}{_emailSetting.SetupEndpoint}")
+                                .Replace("{encryptedEmail}", GetEncrypted(quotes.FirstOrDefault()?.customer.email ?? ""))
+                                .Replace("{salesPersonName}"
+                                , $"{quotes.FirstOrDefault()?.salesperson.first_name ?? ""} {quotes.FirstOrDefault()?.salesperson.last_name ?? ""}");
                             emailSubject = $"Review Request - Ameritex Quote {quotes.FirstOrDefault()?.number} Awaiting Your Attention";
                             break;
                         }
                     case "Workflow1Once":
                         {
-                            var quoteNumbers = string.Join(",", quotes.Select(x => x.number));
-                            if (quoteNumbers.Contains(","))
-                            { quoteNumbers = quoteNumbers.Insert(quoteNumbers.LastIndexOf(",") + 1, " and "); }
-                            
-                            emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
-                                .Replace("{quoteNumber}", quoteNumbers ?? "")
-                                .Replace("{unsubscribeEmail}", GetEncrypted(quotes.FirstOrDefault()?.customer.email ?? ""));
-                            emailSubject = $"Review Request - Ameritex Quote {quoteNumbers} Awaiting Your Attention";
+                            var quoteNumbers = quotes.Select(x => x.number);
+                            var quoteNumberText = string.Join(",", quoteNumbers);
+                            if (quoteNumberText.Contains(",") && quoteNumbers.Count() > 2)
+                            {
+                                quoteNumberText = quoteNumberText.Insert(quoteNumberText.LastIndexOf(",") + 1, " and ");
+                            }
+
+                            //emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
+                            emailContent = emailContent.Replace("{customerFirstName}", quotes.FirstOrDefault()?.customer.first_name ?? "")
+                                //.Replace("{quoteNumber}", quoteNumberText ?? "")
+                                .Replace("{unsubscribeLink}", $"{_emailSetting.EmailSetupBaseUrl}{_emailSetting.UnsubscribeEndpoint}")
+                                .Replace("{emailSetupLink}", $"{_emailSetting.EmailSetupBaseUrl}{_emailSetting.SetupEndpoint}")
+                                .Replace("{encryptedEmail}", GetEncrypted(quotes.FirstOrDefault()?.customer.email ?? ""))
+                                .Replace("{salesPersonName}", 
+                                $"{quotes.FirstOrDefault()?.salesperson.first_name ?? ""} {quotes.FirstOrDefault()?.salesperson.last_name ?? ""}");
+                            emailSubject = $"Review Request - Ameritex Quote {quoteNumberText} Awaiting Your Attention";
                             break;
                         }
                     case "Workflow2":
                         {
-                            var maxleadTime = GetMaxLeadTime(quotes.FirstOrDefault().quote_items);
+                            var maxleadTime = GetMaxLeadTime(quotes.FirstOrDefault()?.quote_items);
 
-                            emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
-                                .Replace("{quoteNumber}", quotes.FirstOrDefault().number?.ToString() ?? "")
+                            emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault()?.customer.first_name ?? ""} {quotes.FirstOrDefault()?.customer.last_name ?? ""}")
+                                .Replace("{quoteNumber}", quotes.FirstOrDefault()?.number?.ToString() ?? "")
                                 .Replace("{quoteETA}", DateTime.Now.AddDays(maxleadTime).ToShortDateString());
-                            emailSubject = $"Commencing Fabrication - Confirmation of Quote {quotes.FirstOrDefault().number}";
+                            emailSubject = $"Commencing Fabrication - Confirmation of Quote {quotes.FirstOrDefault()?.number ?? 0}";
                             break;
                         }
                     case "Workflow4":
                         {
-                            emailContent = emailContent.Replace("{customerName}", $"{quotes.FirstOrDefault().customer.first_name} {quotes.FirstOrDefault().customer.last_name}")
-                                .Replace("{quoteNumber}", quotes.FirstOrDefault().number?.ToString() ?? "")
-                                .Replace("{surveyLink}", $"{JobPathHelper.BaseUrl}/?quoteId={quoteId}&customerId={customerId}")
+                            emailContent = emailContent.Replace("{customerName}",
+                                $"{quotes.FirstOrDefault()?.customer.first_name ?? ""} {quotes.FirstOrDefault()?.customer.last_name ?? ""}")
+                                .Replace("{quoteNumber}", quotes.FirstOrDefault()?.number?.ToString() ?? "")
+                                .Replace("{surveyLink}", _surveyLink)
                                 .Replace("{shipDate}", dated);
-                            emailSubject = $"Great News! Ameritex Quote {quotes.FirstOrDefault().number} is ready to ship.";
+                            emailSubject = $"Great News! Ameritex Quote {quotes.FirstOrDefault()?.number} is ready to ship.";
                             break;
                         }
                     case "Workflow5":
                         {
-                            emailContent = emailContent.Replace("{salesPersonName}", $"{quotes.FirstOrDefault().salesperson.first_name} {quotes.FirstOrDefault().salesperson.last_name}")
-                                .Replace("{customerEmail}", quotes.FirstOrDefault().customer?.email ?? "No customer email")
-                                .Replace("{quoteNumber}", quotes.FirstOrDefault().number?.ToString() ?? "")
-                                .Replace("{expiredDate}", quotes.FirstOrDefault().expired_date.GetValueOrDefault().ToString("G"));
+                            emailContent = emailContent.Replace("{salesPersonName}", 
+                                $"{quotes.FirstOrDefault()?.salesperson.first_name ?? ""}   {quotes.FirstOrDefault()?.salesperson.last_name ?? ""}")
+                                .Replace("{customerEmail}", quotes.FirstOrDefault()?.customer?.email ?? "No customer email")
+                                .Replace("{quoteNumber}", quotes.FirstOrDefault()?.number?.ToString() ?? "")
+                                .Replace("{expiredDate}", quotes.FirstOrDefault()?.expired_date.GetValueOrDefault().ToString("G"));
                             emailSubject = "Quote expired";
                             break;
                         }
@@ -133,16 +171,13 @@ namespace Quote_To_Deal.Common
                         //        break;
                         //    }
 
-
                 }
-
-                
             }
             return (emailSubject, emailContent);
         }
-
+        
         public static void SendEmail(EmailSetting setting, Data.Entities.IEmail emailPerson, Data.Entities.IEmail infoPerson,string dated,
-            long quoteNumber, string templateName, IReadOnlyList<string> toEmails)
+            long quoteNumber, string templateName, IReadOnlyList<string> toEmails, string salesPersonName = "")
         {
             if (!toEmails.Any())
             {
@@ -150,17 +185,32 @@ namespace Quote_To_Deal.Common
             }
             try
             {
+                _emailSetting = setting;
                 String userEmail = setting.UserEmail;
                 String password = setting.Password;
                 MailMessage msg = new MailMessage();
-                //foreach (string email in toEmails)
-                //{
-                //    msg.To.Add(new MailAddress(email));
-                //}
-                msg.To.Add(new MailAddress("zco@ameritexllc.com"));
-                msg.To.Add(new MailAddress("damaya@ameritexllc.com"));
-                msg.From = new MailAddress(userEmail);
-                var (subject, body) = ReadTemplateContent(templateName, quoteNumber, emailPerson,infoPerson, dated);
+               
+                if (_isTestEmail)
+                {
+                    msg.To.Add(new MailAddress("zco@ameritexllc.com"));
+                    //msg.To.Add(new MailAddress("zcoouhatafe@gmail.com"));
+                    if (!_isDevOnly)
+                    {
+                        msg.To.Add(new MailAddress("damaya@ameritexllc.com"));
+                    }
+                }
+                else
+                {
+                    foreach (string email in toEmails)
+                    {
+                        msg.To.Add(new MailAddress(email));
+                    }
+                }
+
+                var emailCreds = GetSalesPersonEmailCreds(salesPersonName);
+
+                msg.From = new MailAddress(emailCreds.Email);
+                var (subject, body) = ReadTemplateContent(templateName, quoteNumber, emailPerson, infoPerson, dated);
                 msg.Subject = subject;
                 msg.Body = body;
                 msg.IsBodyHtml = true;
@@ -168,7 +218,7 @@ namespace Quote_To_Deal.Common
                 using (SmtpClient client = new SmtpClient
                 {
                     Host = setting.Host,
-                    Credentials = new System.Net.NetworkCredential(userEmail, password),
+                    Credentials = new System.Net.NetworkCredential(emailCreds.Email, emailCreds.Password),
                     Port = setting.Port,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     EnableSsl = setting.EnableSsl,
@@ -199,7 +249,8 @@ namespace Quote_To_Deal.Common
                         {
                             emailContent = emailContent.Replace("{salesPersonName}", $"{infoPerson.FirstName} {infoPerson.LastName}")
                                .Replace("{salesPersonEmail}", infoPerson.Email)
-                                .Replace("{customerName}", $"{emailPerson.FirstName} {emailPerson.LastName}")
+                                .Replace("{customerFirstName}", emailPerson.FirstName)
+                                //.Replace("{customerName}", $"{emailPerson.FirstName} {emailPerson.LastName}")
                                 .Replace("{quoteNumber}", quoteNumber.ToString())
                                 .Replace("{quoteDate}", dated );
                             emailSubject = $"Accelerating Precision - Follow-up on Quote {quoteNumber}";
@@ -217,30 +268,43 @@ namespace Quote_To_Deal.Common
                             break;
                         }
                 }
-
             }
             return (emailSubject, emailContent);
         }
 
-
-        private static int GetMaxLeadTime(IReadOnlyList<QuoteItem> quoteItems)
+        private static SalespersonEmailCreds GetSalesPersonEmailCreds(string salesPersonName)
         {
-            int maxLeadTime = 0;
-            var leadDays = new List<int>();
-            foreach (var quoteItem in quoteItems)
-            {
-                foreach (var component in quoteItem.components)
-                {
-                    leadDays.Add(component.quantities.LastOrDefault()?.lead_time ?? 0);
-                }
-            }
-            maxLeadTime = leadDays.Max();
-            return maxLeadTime;
+            var emailCreds = _salesPersonEmailCreds.FirstOrDefault(x => x.Name.Equals(salesPersonName, StringComparison.OrdinalIgnoreCase));
+            return emailCreds ?? new SalespersonEmailCreds
+                                        {
+                                            Email = _emailSetting.UserEmail,
+                                            Password = _emailSetting.Password,
+                                        };
         }
 
+        private static int GetMaxLeadTime(IReadOnlyList<QuoteItem>? quoteItems)
+        {
+            int maxLeadTime = 0;
+            if (quoteItems != null)
+            {
+                var leadDays = new List<int>();
+                foreach (var quoteItem in quoteItems)
+                {
+                    foreach (var component in quoteItem.components)
+                    {
+                        leadDays.Add(component.quantities.LastOrDefault()?.lead_time ?? 0);
+                    }
+                }
+                maxLeadTime = leadDays.Max();
+            }
+            return maxLeadTime;
+        }
+        
         private static string GetEncrypted(string value)
         {
-            return EncryptDecrypt.Encrypt(value);
+            var encVal = EncryptDecrypt.Encrypt(value);
+            
+            return Uri.EscapeDataString(encVal);
         }
 
         public static double GetBusinessDays(DateTime startD, DateTime endD)

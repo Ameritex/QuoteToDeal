@@ -1,5 +1,4 @@
 ﻿// Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse); 
-using Quote_To_Deal.PaperLess.Contract;
 using System;
 using System.Collections.Generic;
 

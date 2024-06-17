@@ -31,6 +31,7 @@ using HubSpot.NET.Api.Contact.Dto;
 using Quote_To_Deal.Common;
 using HubSpot.NET.Api.Task.Dto;
 using Newtonsoft.Json;
+using System.Collections;
 
 namespace Quote_To_Deal.Jobs
 {
@@ -50,6 +51,9 @@ namespace Quote_To_Deal.Jobs
             string hsApiKey = dataMap.GetString("PrivateAppKey");
             long lastQuoteNo = dataMap.GetLong("LastQuoteNumber");
             string quotePath = dataMap.GetString("QuotePath");
+            var SalespersonEmailCreds = JsonConvert.DeserializeObject<List<SalespersonEmailCreds>>(dataMap.GetString("SalespersonEmailCreds"));
+            bool IsTestingOnceADay = dataMap.GetBoolean("IsTestingOnceADay");
+
             string message = "";
 
             _hsAmeritexCompanyId = dataMap.GetLong("AmeritexCompanyId");
@@ -77,14 +81,86 @@ namespace Quote_To_Deal.Jobs
                 //{
                 //    return;
                 //}
-
+                
                 var newQuotes = new List<NewQuote>() {
                     new NewQuote()
                     {
                         quote= 8204,
                         revision=1
+                    },
+                    new NewQuote()
+                    {
+                        quote= 9585,
+                        revision=null
+                    },
+                    new NewQuote()
+                    {
+                        quote= 9577,
+                        revision=null
+                    },
+                    new NewQuote()
+                    {
+                        quote= 9575,
+                        revision=null
                     }
                 };
+
+                var quotes = new List<PaperLess.Quote>();
+
+                foreach (var newQuote in newQuotes)
+                {
+                    var storedQuote = _dbContext.Quotes.Where(x => x.QuoteNumber == newQuote.quote && x.Revision == newQuote.revision).FirstOrDefault();
+                    if (storedQuote == null)
+                    {
+                        continue;
+                    }
+
+                    var customerId = _dbContext.QuoteCustomer.FirstOrDefault(x => x.QuoteId == storedQuote.Id)?.CustomerId ?? 0;
+
+                    var customer = _dbContext.Customers.FirstOrDefault(x => x.Id == customerId);
+                    quotes.Add(new PaperLess.Quote
+                    {
+                        number = newQuote.quote,
+                        customer = new PaperLess.Customer
+                        {
+                            email = customer.Email,
+                            first_name = customer.FirstName,
+                            last_name = customer.LastName
+                        }
+                    });
+                    if (IsTestingOnceADay)
+                    {
+                        //SaveOnceADayEmail(newQuote.quote, newQuote.revision, customer.Email);
+                    }
+                }
+
+                
+
+                var groupedQuotes =  quotes
+                .GroupBy(x => x.customer.email)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (var groupedQuote in groupedQuotes)
+                {
+                    var customerEmail = groupedQuote.Key;
+                    if (!string.IsNullOrEmpty(customerEmail))
+                    {
+                        try
+                        {
+                           // if (!IsEmailUnsubscribed(customerEmail))
+                            {
+                               // Utils.SendEmail(_emailSetting, groupedQuote.Value, "Workflow1Once", new List<string> { customerEmail });
+                                //UpdateOnceADayEmailSentStatus(customerEmail);
+
+                               // WriteLog(PrepareLogMessage($"Once a day email sent successfully. email:{customerEmail}, quoteNos:{string.Join(",", groupedQuote.Value.Select(x => x.number).ToList())}"));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            WriteLog(PrepareLogMessage($"EMAIL ERROR: {ex.Message}{Environment.NewLine}{ex.InnerException?.Message}{Environment.NewLine}{ex.StackTrace}"));
+                        }
+                    }
+                }
 
                 foreach (var newQuote in newQuotes)
                 {
@@ -192,24 +268,35 @@ namespace Quote_To_Deal.Jobs
                     //    $"The quote {quote.number} has been to the client. Please follow up within 24 hours on priority basis.\r\nFollowing is customer's information\r\nName: {quote.customer.first_name} {quote.customer.last_name}\r\nPhone: {quote.customer.phone}\r\nEmail: {quote.customer.email} ",
                     //    $"Follow up new quote {quote.number}");
 
-                    var salesPerson = GetSalesPerson(1134);
-                    var customer = GetCustomer(1134);
+                    var salesPerson = GetSalesPerson(1663);
+                    var customer = GetCustomer(1663);
 
                     var quote = PaperLessAPIControl.GetQuoteInformation(newQuote.quote, newQuote.revision);
                     if (!string.IsNullOrEmpty(quote.customer.email))
                     {
                         try
                         {
-                            //if (!IsEmailUnsubscribed("zco@ameritexllc.com"))
-                            {
-                                Utils.SendEmail(_emailSetting, new  List<PaperLess.Quote>{ quote }, "Workflow1Once", new List<string> { quote.customer.email });
+                            //if (!IsEmailUnsubscribed(quote.customer.email))
+                            //{
+                             Utils.SendEmail(_emailSetting, new List<PaperLess.Quote> { quote }, "Workflow1", new List<string> { quote.customer.email }, salesPersonName: salesPerson.FirstName);
+                            //}
 
-                            }
+                            //if (!IsEmailUnsubscribed(quote.customer.email))
+                            //{
+                            //    if (!IsOnceADay(quote.customer.email))
+                            //    {
+                            //        Utils.SendEmail(_emailSetting, new List<PaperLess.Quote> { quote }, "Workflow1", new List<string> { quote.customer.email });
+                            //    }
+                            //    else
+                            //    {
+                            //        SaveOnceADayEmail(quote.number, quote.revision_number, quote.customer.email);
+                            //    }
+                            //}
 
 
                             //Utils.SendEmail(_emailSetting, customer, salesPerson,
-                            //    "03/26/2024", 8204,
-                            //    "Workflow3_Customer", new List<string> { customer.Email });
+                            //    "05/20/2024", 8204,
+                            //    "Workflow3_Customer", new List<string> { customer.Email }, salesPerson.FirstName);
 
                             //Utils.SendEmail(_emailSetting, salesPerson, customer,
                             //   "03/26/2024", 8204,
@@ -238,9 +325,15 @@ namespace Quote_To_Deal.Jobs
             }
         }
 
+        private bool IsOnceADay(string email)
+        {
+            var dailyEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email && (x.IsOnceADay ?? false) == true);
+            return dailyEmail != null;
+        }
+
         private bool IsEmailUnsubscribed(string email)
         {
-            var unsubscribedEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email);
+            var unsubscribedEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email && (x.IsUnsubscribed ?? false) == true);
             return unsubscribedEmail != null;
         }
 
@@ -447,6 +540,9 @@ namespace Quote_To_Deal.Jobs
                 Port = dataMap.GetInt("SmtpPort"),
                 EnableSsl = dataMap.GetBoolean("SmtpEnableSsl"),
                 Password = dataMap.GetString("EmailPassword"),
+                EmailSetupBaseUrl = dataMap.GetString("EmailSetupBaseUrl"),
+                SetupEndpoint = dataMap.GetString("SetupEndpoint"),
+                UnsubscribeEndpoint = dataMap.GetString("UnsubscribeEndpoint")
             };
         }
 
@@ -456,6 +552,25 @@ namespace Quote_To_Deal.Jobs
             outputFile.WriteLine(message);
             outputFile.Close();
             outputFile.Dispose();
+        }
+
+        private void SaveOnceADayEmail(long? quoteNumber, int? revisionNumber, string email)
+        {
+            if (quoteNumber == null && string.IsNullOrEmpty(email))
+            {
+                return;
+            }
+
+            var emailToSave = new OnceADayEmail
+            {
+                Email = email,
+                QuoteNumber = quoteNumber.GetValueOrDefault(),
+                Dated = DateTime.Now,
+                RevisionNumber = revisionNumber
+            };
+
+            _dbContext.OnceADayEmails.Add(emailToSave);
+            _dbContext.SaveChanges();
         }
     }
 }

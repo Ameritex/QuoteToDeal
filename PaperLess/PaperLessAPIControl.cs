@@ -1,10 +1,7 @@
-﻿using Newtonsoft.Json;
-using Quote_To_Deal.Common;
+﻿using Quote_To_Deal.Common;
 using Quote_To_Deal.Models;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Quote_To_Deal.PaperLess
 {

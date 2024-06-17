@@ -5,8 +5,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type="text/css">
-
-
         @media screen {
             #sidebar.opened + #page-container {
                 left: 250px
@@ -170,17 +168,17 @@
                 box-shadow: 1px 1px 3px 1px #333;
                 border-collapse: separate
             }
-        }
 
-        .ws0 {
-            word-spacing: -15.7px;
-        }
+            .ws0 {
+                word-spacing: -15.7px;
+            }
 
-        .h0 {
-        }
+            .h0 {
+            }
 
-        .w0 {
-            width: 595.5px;
+            .w0 {
+                width: 595.5px;
+            }
         }
 
         @media print {
@@ -189,7 +187,7 @@
             }
 
             .h0 {
-                height: 1123pt;
+                height: 1121pt;
             }
 
             .w0 {
@@ -214,7 +212,7 @@
     </title>
 </head>
 <body>
-    <div id="page-container">
+    <div id="page-container" style="/* font-family: Calibri; */">
         <div id="pf1" class="pf w0 h0" data-page-no="1">
             <div id="page-template" class="pc pc1 w0 h0">
                 <table>
@@ -224,54 +222,60 @@
                                 <img class="img" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow_header.png" style="width: 100%;">
                             </th>
                         </tr>
-                        <tr>
+                        <tr class="">
                             <th align="left">
-                                <img class="img" style="width: 100%;" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow2_banner.png">
-
+                                <img class="img" style="width: 100%;" src="https://ameritexllc.com/wp-content/uploads/2024/03/Workflow1_banner.png">
                             </th>
                         </tr>
                         <tr>
-                            <th align="left" style="text-align: center; font-size: 40px; padding: 15px 0;">Hello {customerName},</th>
+                            <th align="left" style="text-align: center;font-size: 40px;padding: 15px 0;">Hello {customerName},</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>
-                                <table style="padding: 0 15px;margin:0 35px">
+                                <table style="padding: 0 15px; margin: 0 35px;">
                                     <tbody>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                It's a pleasure to confirm that we've received your acceptance for quote "{quoteNumber}".
+                                                We wanted to remind you that your custom quote from Ameritex, <br />numbered "{quoteNumber}", is ready and awaiting your review.
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                Our skilled team at Ameritex Machine & Fabrication is now gearing up to transform your project into a tangible masterpiece.
+                                                We've sent all the pertinent details directly to your inbox for your convenience.
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                We're targeting an ETA of {quoteETA} to turn your concepts into high-quality fabrications. Rest assured, our commitment to precision and efficiency is at the core of every operation.
+                                                We're eager to show how our precision-driven solutions align with your project's ambitions.
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="padding-bottom: 15px;">
-                                                Should any questions arise as we embark on this journey of craftsmanship, or if youwish to discuss project details further, feel free to reach out.
+                                                Your feedback is valuable to us, and we look forward to any questions or insights you may wish to share.
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style="padding-bottom: 15px;">
-                                                We are dedicated to ensuring a seamless process and exceptional results.<br/>Thank you for choosing Ameritex.
+                                            <td style="padding-bottom: 20px;">
+                                                Thank you for considering Ameritex for your metal fabrication needs. We are committed to delivering excellence and precision, from the initial quote to the final product.
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style="text-align: center;padding-bottom: 25px;">
+                                            <td style="text-align: center;padding-bottom: 40px;">
                                                 <a href="mailto:Sales@Ameritexllc.com" class="x_l" data-linkindex="0"><div class="x_d x_m1" style="text-align: center; width: 75px; display: block; margin: auto; background: black; color: white; padding: 10px 25px; border-radius: 20px;">Email</div></a>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style="padding-bottom: 25px;text-align: center;color: white">
+                                            <td style="padding-bottom: 40px;text-align: center;color: white">
                                                 <img src="https://ameritexllc.com/wp-content/uploads/2024/03/logo.png">
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;color: gray;font-size: xx-small;">
+                                                <div>
+                                                    <a href="{unsubscribeLink}{encryptedEmail}">Unsubscribe</a> &nbsp; <a href="{emailSetupLink}{encryptedEmail}">Email Preferences</a>
+                                                </div>
                                             </td>
                                         </tr>
                                         <tr>
@@ -282,7 +286,6 @@
                                                 </div>
                                             </td>
                                         </tr>
-
                                     </tbody>
                                 </table>
 

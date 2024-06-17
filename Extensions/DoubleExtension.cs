@@ -1,5 +1,4 @@
-﻿using ServiceStack;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Quote_To_Deal.Extensions
 {

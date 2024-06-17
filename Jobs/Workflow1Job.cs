@@ -1,34 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Quartz;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Quote_To_Deal.Data;
 using Quote_To_Deal.Common;
-using HubSpot.NET.Api.Contact;
-using HubSpot.NET.Core;
 using Quote_To_Deal.Hubspot;
-using HubSpot.NET.Core.Requests;
 using Quote_To_Deal.PaperLess;
-using Quote_To_Deal.Extensions;
 using Quote_To_Deal.Data.Entities;
-using Microsoft.IdentityModel.Protocols.Configuration;
 using HubSpot.NET.Api.Deal.Dto;
 using Quote_To_Deal.Models;
 using HubSpot.NET.Api.Contact.Dto;
-using Quote_To_Deal.Common;
 using HubSpot.NET.Api.Task.Dto;
 using Newtonsoft.Json;
 
@@ -46,11 +31,10 @@ namespace Quote_To_Deal.Jobs
         {
             JobDataMap dataMap = context.JobDetail.JobDataMap;
 
-            string connectionString = dataMap.GetString("ConnectionString");
-            string hsApiKey = dataMap.GetString("PrivateAppKey");
-            long lastQuoteNo = dataMap.GetLong("LastQuoteNumber");
-            string quotePath = dataMap.GetString("QuotePath");
-            string message = "";
+            string connectionString = dataMap.GetString("ConnectionString") ?? "";
+            string hsApiKey = dataMap.GetString("PrivateAppKey") ?? "";
+            string quotePath = dataMap.GetString("QuotePath") ?? "";
+            bool IsTestingOnceADay = dataMap.GetBoolean("IsTestingOnceADay");
 
             _hsAmeritexCompanyId = dataMap.GetLong("AmeritexCompanyId");
 
@@ -128,11 +112,14 @@ namespace Quote_To_Deal.Jobs
                             continue;
                         }
 
-                        hsContactId = _hubspotAPIControl.CreateContact(newContact, hsCompanyId);
+                        //hsContactId = _hubspotAPIControl.CreateContact(newContact, hsCompanyId);
 
                         WriteLog(PrepareLogMessage($"New hubspot contact with email {newContact.Email} created. HubspotContactId: {hsContactId}"));
 
                     }
+
+                    SaveEmailPreference(quote.customer.email);
+
                     var hsSalesPersonId = _hubspotAPIControl.GetContactIdByEmail(quote.salesperson.email);
 
                     if (hsSalesPersonId == 0)
@@ -150,53 +137,96 @@ namespace Quote_To_Deal.Jobs
                         WriteLog(PrepareLogMessage($"New hubspot sales person with email {newSalesPerson.Email} created. HubspotSalesPersonId: {hsSalesPersonId}"));
 
                     }
-                    var hsOwnerId = _hubspotAPIControl.GetOwnerId(quote.salesperson.email);
-                    var data = new DealHubSpotModel
-                    {
-                        Name = $"{quote.customer.first_name ?? "Unknown"} {quote.customer.last_name ?? "Unknown"}-{quote.number}",
-                        Stage = GetStageId(quote.status, quote.sent_date),
-                        CloseDate = quote.expired_date ?? DateTime.Now,
-                        Amount = GetTotalPrice(quote.quote_items),
-                        DealType = "newbusiness",
-                        Pipeline = "default",
-                        DateCreated = quote.created ?? DateTime.Now,
-                        OwnerId = hsOwnerId,
-                    };
 
-                    var hsDealId = _hubspotAPIControl.CreateDeal(data, hsContactId);
-                    WriteLog(PrepareLogMessage($"New Hubspot deal created successfully with Id:{hsDealId}"));
+                    var initialQuote = GetInitalQuote(newQuote.quote);
+
+                    long hsDealId = 0;
+
+                    if (initialQuote == null)
+                    {
+                        var hsOwnerId = _hubspotAPIControl.GetOwnerId(quote.salesperson.email);
+                        var data = new DealHubSpotModel
+                        {
+                            Name = $"{quote.customer.first_name ?? "Unknown"} {quote.customer.last_name ?? "Unknown"}-{quote.number}",
+                            Stage = GetStageId(quote.status, quote.sent_date),
+                            CloseDate = quote.expired_date ?? DateTime.Now,
+                            Amount = GetTotalPrice(quote.quote_items),
+                            DealType = "newbusiness",
+                            Pipeline = "default",
+                            DateCreated = quote.created ?? DateTime.Now,
+                            OwnerId = hsOwnerId,
+                        };
+
+                        hsDealId = _hubspotAPIControl.CreateDeal(data, hsContactId);
+                        WriteLog(PrepareLogMessage($"New Hubspot deal created successfully with Id:{hsDealId}"));
+                    }
+                    else
+                    {
+                        hsDealId = initialQuote.HsDealId;
+
+                        var data = new DealHubSpotModel
+                        {
+                            Id = hsDealId,
+                            Amount = GetTotalPrice(quote.quote_items),
+                            CloseDate = quote.expired_date ?? DateTime.Now,
+                        };
+                        _hubspotAPIControl.UpdateDeal(data);
+                    }
 
                     SaveQuote(quote, hsContactId, hsDealId);
 
                     WriteLog(PrepareLogMessage($"Quote saved in DB succefully."));
-
-                    TaskHubSpotModel taskData = new TaskHubSpotModel()
+                    if (initialQuote == null)
                     {
-                        Notes = $"The Quote {quote.number} has been sent to the customer at {quote.customer.email}. Please follow up within 24 hours on priority basis.",
-                        DueDate = DateTime.Now.AddDays(1),
-                        Priority = "High",
-                        Status = "Waiting",
-                        Subject = $"New Quote {quote.number}- Follow-up Required",
-                        Type = "To-do",
-                        OwnerId = hsSalesPersonId
-                    };
-
-                    _hubspotAPIControl.CreateTask(taskData, hsSalesPersonId, _hsAmeritexCompanyId,
-                        $"The quote {quote.number} has been to the client. Please follow up within 24 hours on priority basis.\r\nFollowing is customer's information\r\nName: {quote.customer.first_name} {quote.customer.last_name}\r\nPhone: {quote.customer.phone}\r\nEmail: {quote.customer.email} ",
-                        $"Follow up new quote {quote.number}");
-
-                    if (!string.IsNullOrEmpty(quote.customer.email))
-                    {
-                        try
+                        TaskHubSpotModel taskData = new TaskHubSpotModel()
                         {
-                            if (!IsEmailUnsubscribed(quote.customer.email))
+                            Notes = $"The Quote {quote.number} has been sent to the customer at {quote.customer.email}. Please follow up within 24 hours on priority basis.",
+                            DueDate = DateTime.Now.AddDays(1),
+                            Priority = "High",
+                            Status = "Waiting",
+                            Subject = $"New Quote {quote.number}- Follow-up Required",
+                            Type = "To-do",
+                            OwnerId = hsSalesPersonId
+                        };
+
+                        _hubspotAPIControl.CreateTask(taskData, hsSalesPersonId, _hsAmeritexCompanyId,
+                            $"The quote {quote.number} has been to the client. Please follow up within 24 hours on priority basis.\r\nFollowing is customer's information\r\nName: {quote.customer.first_name} {quote.customer.last_name}\r\nPhone: {quote.customer.phone}\r\nEmail: {quote.customer.email} ",
+                            $"Follow up new quote {quote.number}");
+
+                        if (!string.IsNullOrEmpty(quote.customer.email))
+                        {
+                            try
                             {
-                                Utils.SendEmail(_emailSetting, new List<PaperLess.Quote> { quote }, "Workflow1", new List<string> { quote.customer.email });
+                                if (IsTestingOnceADay)
+                                {
+                                    SaveOnceADayEmail(quote.number, quote.revision_number, quote.customer.email);
+                                }
+                                else
+                                {
+                                    var emailSetting = GetEmailSettings(quote.customer.email);
+                                    if (emailSetting == null)
+                                    {
+                                        continue;
+                                    }
+                                    if (emailSetting.IsUnsubscribed ?? false)
+                                    {
+                                        continue;
+                                    }
+
+                                    if (emailSetting.IsOnceADay ?? false)
+                                    {
+                                        SaveOnceADayEmail(quote.number, quote.revision_number, quote.customer.email);
+                                    }
+                                    else
+                                    {
+                                        Utils.SendEmail(_emailSetting, new List<PaperLess.Quote> { quote }, "Workflow1", new List<string> { quote.customer.email }, salesPersonName: quote.salesperson.first_name);
+                                    }
+                                }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            WriteLog(PrepareLogMessage($"EMAIL ERROR: {ex.Message}{Environment.NewLine}{ex.InnerException?.Message}{Environment.NewLine}{ex.StackTrace}"));
+                            catch (Exception ex)
+                            {
+                                WriteLog(PrepareLogMessage($"EMAIL ERROR: {ex.Message}{Environment.NewLine}{ex.InnerException?.Message}{Environment.NewLine}{ex.StackTrace}"));
+                            }
                         }
                     }
 
@@ -210,22 +240,68 @@ namespace Quote_To_Deal.Jobs
             }
         }
 
-        private bool IsEmailUnsubscribed(string email)
+        private UnsubscribeEmail GetEmailSettings(string email)
         {
-            var unsubscribedEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email);
-            return unsubscribedEmail != null;
+            return _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email);
         }
 
-        private void UpdateQuote(PaperLess.Quote quote)
+        private void SaveEmailPreference(string email)
         {
-            var existingQuote = _dbContext.Quotes.FirstOrDefault(x => x.QuoteNumber == quote.number && x.Revision == quote.revision_number);
-            if (existingQuote != null)
+            var emailPreference = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email);
+            if (emailPreference == null)
             {
-                existingQuote.Status = quote.status;
-                existingQuote.IsExpired = quote.expired;
+                var newEmailPreference = new UnsubscribeEmail
+                {
+                    Email = email,
+                    CreatedDate = DateTime.Now,
+                    IsOnceADay = true,
+                    IsUnsubscribed = false
+                };
 
+                _dbContext.UnsubscribeEmails.Add(newEmailPreference);
                 _dbContext.SaveChanges();
             }
+        }
+
+        private void SaveOnceADayEmail(long? quoteNumber, int? revisionNumber, string email)
+        {
+            if (quoteNumber == null && string.IsNullOrEmpty(email))
+            {
+                return;
+            }
+
+            var existingQuote = _dbContext.OnceADayEmails.FirstOrDefault(x => x.QuoteNumber == quoteNumber);
+
+            if (existingQuote != null)
+            {
+                existingQuote.RevisionNumber = revisionNumber;
+                _dbContext.OnceADayEmails.Update(existingQuote);
+            }
+            else
+            {
+                var emailToSave = new OnceADayEmail
+                {
+                    Email = email,
+                    QuoteNumber = quoteNumber.GetValueOrDefault(),
+                    Dated = DateTime.Now,
+                    RevisionNumber = revisionNumber
+                };
+                _dbContext.OnceADayEmails.Add(emailToSave);
+            }
+
+            _dbContext.SaveChanges();
+        }
+
+        private bool IsOnceADay(string email)
+        {
+            var dailyEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email && (x.IsOnceADay ?? false) == true);
+            return dailyEmail != null;
+        }
+
+        private bool IsEmailUnsubscribed(string email)
+        {
+            var unsubscribedEmail = _dbContext.UnsubscribeEmails.FirstOrDefault(x => x.Email == email && (x.IsUnsubscribed ?? false) == true);
+            return unsubscribedEmail != null;
         }
 
         private bool IsQuoteEligible(long quoteNumber, int? revision)
@@ -233,15 +309,15 @@ namespace Quote_To_Deal.Jobs
             return !(_dbContext.Quotes.FirstOrDefault(x => x.QuoteNumber == quoteNumber && x.Revision == revision)?.IsWorkflow1 ?? false);
         }
 
-        private double GetTotalPrice(IReadOnlyList< QuoteItem > quoteItems)
+        private double GetTotalPrice(IReadOnlyList<QuoteItem> quoteItems)
         {
             var totalPrice = 0.00;
-            foreach(var quoteItem in quoteItems)
+            foreach (var quoteItem in quoteItems)
             {
                 var amounts = new List<double>();
                 foreach (var component in quoteItem.components)
                 {
-                    amounts.Add( component.quantities.LastOrDefault()?.total_price ?? 0);
+                    amounts.Add(component.quantities.LastOrDefault()?.total_price ?? 0);
                 }
                 totalPrice += amounts.Max();
             }
@@ -252,24 +328,24 @@ namespace Quote_To_Deal.Jobs
         private string GetStageId(string quoteStatus, DateTime? sentDate)
         {
             var stageId = "";
-            
+
             switch (quoteStatus)
             {
                 case "accepted":
-                   stageId =  "152024071";
-                        break;
+                    stageId = "152024071";
+                    break;
                 case "closed":
                     stageId = "152024072";
                     break;
                 case "draft":
                     stageId = "appointmentscheduled";
                     break;
-                case "outstanding" :
+                case "outstanding":
                     if (sentDate.HasValue)
                     {
                         stageId = "presentationscheduled";
                     }
-                   
+
                     break;
             }
 
@@ -280,6 +356,11 @@ namespace Quote_To_Deal.Jobs
         {
             var quote = _dbContext.Quotes.FirstOrDefault(x => x.QuoteNumber == quoteNo && x.Revision == revision);
             return quote != null;
+        }
+
+        private Data.Entities.Quote? GetInitalQuote(long quoteNo)
+        {
+            return _dbContext.Quotes.FirstOrDefault(x => x.QuoteNumber == quoteNo);
         }
 
         private void SaveQuote(PaperLess.Quote paperlessQuote, long hubspotContactId, long hubspotDealId)
@@ -310,7 +391,8 @@ namespace Quote_To_Deal.Jobs
                 customerId = existingCustomer.Id;
             }
 
-            var quote = new Data.Entities.Quote() {
+            var quote = new Data.Entities.Quote()
+            {
                 CreatedDate = DateTime.Now,
                 Email = paperlessQuote.email,
                 ExpireDate = paperlessQuote.expired_date,
@@ -401,6 +483,9 @@ namespace Quote_To_Deal.Jobs
                 Port = dataMap.GetInt("SmtpPort"),
                 EnableSsl = dataMap.GetBoolean("SmtpEnableSsl"),
                 Password = dataMap.GetString("EmailPassword"),
+                EmailSetupBaseUrl = dataMap.GetString("EmailSetupBaseUrl"),
+                SetupEndpoint = dataMap.GetString("SetupEndpoint"),
+                UnsubscribeEndpoint = dataMap.GetString("UnsubscribeEndpoint")
             };
         }
 

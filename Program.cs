@@ -3,12 +3,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Quartz.Impl;
 using Quartz;
-using System;
 using Quote_To_Deal.Jobs;
 using Quote_To_Deal.PaperLess;
 using Quote_To_Deal.Common;
 using System.IO;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Generic;
+using Quote_To_Deal.Models;
+using Newtonsoft.Json;
+using ServiceStack.Text;
 
 namespace Quote_To_Deal
 {
@@ -18,7 +21,6 @@ namespace Quote_To_Deal
         {
             CreateHostBuilder(args).Build().Run();
         }
-
         public static void StartWorkflow1Job(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -52,16 +54,20 @@ namespace Quote_To_Deal
             job.JobDataMap.Put("SmtpPort", config[$"Smtp:Port"]);
             job.JobDataMap.Put("SmtpHost", config[$"Smtp:Host"]);
             job.JobDataMap.Put("SmtpEnableSsl", config[$"Smtp:EnableSsl"]);
+            job.JobDataMap.Put("EmailSetupBaseUrl", config[$"EmailSetup:BaseUrl"]);
+            job.JobDataMap.Put("SetupEndpoint", config[$"EmailSetup:SetupEndpoint"]);
+            job.JobDataMap.Put("UnsubscribeEndpoint", config[$"EmailSetup:UnsubscribeEndpoint"]);
+            job.JobDataMap.Put("IsTestingOnceADay", config[$"IsTestingOnceADay"]);
 
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflow1OnceJob(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
             var scheduler = schedulerFactory.GetScheduler().Result;
             var configKey = $"Quartz:Workflow1";
+            //var configKey = $"Quartz:Workflow1OnceADay";
             var cronSchedule = config[configKey];
             var quotePath = Path.Combine(config[$"BasePath"], config[$"Paperless:QuotePath"]);
 
@@ -90,11 +96,14 @@ namespace Quote_To_Deal
             job.JobDataMap.Put("SmtpPort", config[$"Smtp:Port"]);
             job.JobDataMap.Put("SmtpHost", config[$"Smtp:Host"]);
             job.JobDataMap.Put("SmtpEnableSsl", config[$"Smtp:EnableSsl"]);
-
+            job.JobDataMap.Put("EmailSetupBaseUrl", config[$"EmailSetup:BaseUrl"]);
+            job.JobDataMap.Put("SetupEndpoint", config[$"EmailSetup:SetupEndpoint"]);
+            job.JobDataMap.Put("UnsubscribeEndpoint", config[$"EmailSetup:UnsubscribeEndpoint"]);
+            job.JobDataMap.Put("IsTestingOnceADay", config[$"IsTestingOnceADay"]);
+            
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartTestWorkflow(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -128,11 +137,18 @@ namespace Quote_To_Deal
             job.JobDataMap.Put("SmtpPort", config[$"Smtp:Port"]);
             job.JobDataMap.Put("SmtpHost", config[$"Smtp:Host"]);
             job.JobDataMap.Put("SmtpEnableSsl", config[$"Smtp:EnableSsl"]);
+            job.JobDataMap.Put("EmailSetupBaseUrl", config[$"EmailSetup:BaseUrl"]);
+            job.JobDataMap.Put("SetupEndpoint", config[$"EmailSetup:SetupEndpoint"]);
+            job.JobDataMap.Put("UnsubscribeEndpoint", config[$"EmailSetup:UnsubscribeEndpoint"]);
+            job.JobDataMap.Put("IsTestingOnceADay", config[$"IsTestingOnceADay"]);
+
+            var salesPersonEmailCreds = config.GetSection("SalespersonEmailCreds").Get<List<SalespersonEmailCreds>>();
+
+            job.JobDataMap.Put("SalespersonEmailCreds", JsonConvert.SerializeObject(salesPersonEmailCreds));
 
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflow2Job(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -171,7 +187,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflowCancellationJob(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -210,7 +225,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflow3Job(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -249,7 +263,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflow4Job(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -288,7 +301,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static void StartWorkflow4ByOrderJob(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -327,8 +339,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
-
         public static void StartWorkflow5Job(IConfiguration config)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
@@ -368,7 +378,6 @@ namespace Quote_To_Deal
             scheduler.ScheduleJob(job, trigger);
             scheduler.Start();
         }
-
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
@@ -380,15 +389,22 @@ namespace Quote_To_Deal
                    Common.JobPathHelper.BaseUrl = configuration["BaseUrl"];
 
                    var encrytionKey = configuration["EncrytionKey"] ?? "ameritex";
+                   var isTestingEmail = bool.Parse(configuration["IsTestingEmail"]);
+                   var surveyLink = configuration["SurveyLink"];
+                   var isDevOnly = bool.Parse(configuration["IsDevOnly"]);
                    var encrytionConfig = new EncryptDecrypt(encrytionKey);
+
+                   var salesPersonEmailCreds = configuration.GetSection("SalespersonEmailCreds").Get<List<SalespersonEmailCreds>>();
+                   var UtilConfig = new Utils(isTestingEmail, isDevOnly, surveyLink, salesPersonEmailCreds);
+
                    services.AddSingleton(encrytionConfig);
 
-                   StartWorkflow1Job(configuration);
-                   //StartWorkflow1OnceJob(configuration);
-                   StartWorkflow2Job(configuration);
-                   StartWorkflow3Job(configuration);
-                   StartWorkflow4Job(configuration);
-                   StartWorkflow4ByOrderJob(configuration);
+                   //StartWorkflow1Job(configuration);
+                   StartWorkflow1OnceJob(configuration);
+                   //StartWorkflow2Job(configuration);
+                   //StartWorkflow3Job(configuration);
+                   //StartWorkflow4Job(configuration);
+                   //StartWorkflow4ByOrderJob(configuration);
                    //StartWorkflow5Job(configuration);
                    //StartWorkflowCancellationJob(configuration);
                    //StartTestWorkflow(configuration);

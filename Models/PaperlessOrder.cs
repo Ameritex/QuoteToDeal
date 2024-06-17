@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Quote_To_Deal.Models
+﻿namespace Quote_To_Deal.Models
 {
     public class PaperlessOrder
     {
